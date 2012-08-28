@@ -12,12 +12,12 @@ chdir $Bin;
 system("ant") and die "Must be able to build.";
 print "Done building java code\n";
 
-my $libName = `java -cp build/jar/hunspell.jar dk.dren.hunspell.HunspellMain -libname`;
+my $libName = `java -cp target/hunspell-1.3.2.jar dk.dren.hunspell.HunspellMain -libname`;
 die "Don't know this platform, implement support for this platform in Hunspell.java (and possibly Hunspell and JNA)"
 	unless $libName;
 chomp $libName;
 print "Going to try to build $libName\n";
-$libName = "$Bin/native-lib/$libName";
+$libName = "$Bin/src/main/resources/$libName";
 
 die "Whoa there, cowboy, $libName already exists, delete it if you want to rebuild!" if -f $libName;
 
@@ -25,18 +25,18 @@ die "Whoa there, cowboy, $libName already exists, delete it if you want to rebui
 
 sub untar() {
 
-	opendir D, "$Bin/native-src" or die "Urgh: $!";
+	opendir D, "$Bin/third-parties" or die "Urgh: $!";
 	my @nsf = readdir D;
 	closedir D;
 
 	my ($huntar) = grep {/^hunspell-.*\.tar\.gz$/} @nsf; 
-	die "Unable to find the hunspell tar file in native-src" unless $huntar;
+	die "Unable to find the hunspell tar file in third-parties" unless $huntar;
 
-	chdir "$Bin/native-src";
+	chdir "$Bin/third-parties";
 	system("tar xfz $huntar") and die "Unable to untar $huntar";
 
 	# Now find the source dir:
-	opendir D, "$Bin/native-src" or die "Urgh: $!";
+	opendir D, "$Bin/third-parties" or die "Urgh: $!";
 	my ($hundir) = grep {-d $_ and /^hunspell-/} readdir D;
 	closedir D;
 
@@ -46,11 +46,11 @@ sub untar() {
 		system("patch -u -p 2 -d $hundir -i ../$p") and die "Unable to apply patch: $p";
 	}
 	
-	chdir "$Bin/native-src/$hundir";
-	return "$Bin/native-src/$hundir";
+	chdir "$Bin/third-parties/$hundir";
+	return "$Bin/third-parties/$hundir";
 }
 
-mkdir "$Bin/native-lib";
+mkdir "$Bin/src/main/resources";
 
 my $unixy = 0;
 if ($sysname eq 'Linux') {
@@ -85,7 +85,7 @@ if ($unixy) { # aah, a sane OS, so life is simple.
     die "Unable to find dynamic hunspell lib in $outputDir" unless $output;
     
     cp("$outputDir/$output", $libName) 
-		or die "Unable to copy $outputDir/$output to $Bin/native-lib/$libName: $!";
+		or die "Unable to copy $outputDir/$output to $Bin/src/main/resources/$libName: $!";
     
     system("rm -rf $ns");
 
